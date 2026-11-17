@@ -1,0 +1,514 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <!--
+    COORDINATES : mule.test.devops:mtd-parent-pom:1.0.0-SNAPSHOT
+    STORE       : GitHub Packages (devops-foundry-2/mtd-parent-pom)
+    TARGETS     : CloudHub 2.0 only (ch2 profile). No on-prem, no RTF.
+    RUNTIME     : Mule 4.6.37 LTS / Java 17
+    -->
+
+    <groupId>mule.test.devops</groupId>
+    <artifactId>mtd-parent-pom</artifactId>
+    <packaging>pom</packaging>
+    <version>1.0.0-SNAPSHOT</version>
+
+    <name>mtd-parent-pom</name>
+    <description>MuleSoft DevTest parent POM — CloudHub 2.0, GitHub Packages, LTS runtime.</description>
+
+    <properties>
+        <!-- Build defaults — encoding and Java language level -->
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <!-- Java 17 is required for Mule 4.6+ LTS. Controls compile-time and CH2 runtime javaVersion. -->
+        <java.version>17</java.version>
+
+        <!--
+        Anypoint organisation identity.
+        INJECTED-AT-DEPLOY: every pipeline deploy overrides with -DorganizationId=<BG_ID>
+        read from the GitHub environment variable. Never hardcode a BG id here.
+        -->
+        <organizationId>${project.groupId}</organizationId>
+        <type>custom</type>
+
+        <!--
+        Build and deploy PLUGIN versions — ADVISORY-ONLY, never bump as part of a connector sweep.
+        mule.maven.plugin.version 4.10.0 is a DELIBERATE PIN (ERR-016 guard).
+        -->
+        <mule.maven.plugin.version>4.10.0</mule.maven.plugin.version>
+        <exchange.mule.maven.plugin.version>0.1.7</exchange.mule.maven.plugin.version>
+        <resources.plugin.version>3.5.0</resources.plugin.version>
+        <maven.clean.plugin.version>3.5.0</maven.clean.plugin.version>
+        <maven.compiler.plugin.version>3.14.1</maven.compiler.plugin.version>
+        <maven.release.plugin.version>3.1.1</maven.release.plugin.version>
+        <maven.enforcer.plugin.version>3.5.0</maven.enforcer.plugin.version>
+
+        <!--
+        Test tooling — ADVISORY (munit suite must stay on the same version triple).
+        Connectors below — SWEEP-N1 (latest stable minus one minor).
+        -->
+        <munit.version>3.7.1</munit.version>
+        <munit-tools>3.7.1</munit-tools>
+        <munit-runner>3.7.1</munit-runner>
+        <skipMunitTests>true</skipMunitTests>
+        <assertions-version>2.9.0</assertions-version>
+        <application.type>mule-application</application.type>
+
+        <!-- N-1 connector versions — approved 2026-11-17 -->
+        <mule-http-connector-version>1.11.3</mule-http-connector-version>
+        <mule-sockets-connector>1.2.7</mule-sockets-connector>
+        <mule-salesforce-connector-version>12.0.5</mule-salesforce-connector-version>
+        <mule-db-connector-version>1.15.1</mule-db-connector-version>
+        <mule-jms-connector-version>1.10.3</mule-jms-connector-version>
+        <mule-anypoint-mq-connector-version>4.0.22</mule-anypoint-mq-connector-version>
+
+        <!-- Mule functional modules — SWEEP-N1 -->
+        <maven-site-plugin>3.22.0</maven-site-plugin>
+        <maven-install-plugin>3.1.4</maven-install-plugin>
+        <maven-deploy-plugin>3.1.4</maven-deploy-plugin>
+        <mule-encryption>1.8.0</mule-encryption>
+        <mule-secure-configuration-property-module>1.2.7</mule-secure-configuration-property-module>
+        <mule-apikit-module>1.11.10</mule-apikit-module>
+        <mule-validation-module>2.0.8</mule-validation-module>
+
+        <!-- Exchange catalog metadata (consumed by deploy-to-exchange-v3 profile) -->
+        <tags>parent-pom</tags>
+        <categories>[]</categories>
+        <fields>[]</fields>
+
+        <!--
+        GitHub Packages publishing coordinates.
+        RULE: github.repository.id must match the <server><id> in settings.xml exactly.
+        RULE: github.repository.owner is the GitHub organisation (devops-foundry-2).
+        The publish URL is assembled from these two properties in <distributionManagement>.
+        -->
+        <github.repository.owner>devops-foundry-2</github.repository.owner>
+        <github.repository.name>mtd-parent-pom</github.repository.name>
+        <github.repository.id>github</github.repository.id>
+    </properties>
+
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-resources-plugin</artifactId>
+                    <version>${resources.plugin.version}</version>
+                    <configuration>
+                        <nonFilteredFileExtensions>
+                            <nonFilteredFileExtension>cer</nonFilteredFileExtension>
+                            <nonFilteredFileExtension>crt</nonFilteredFileExtension>
+                            <nonFilteredFileExtension>jks</nonFilteredFileExtension>
+                            <nonFilteredFileExtension>p12</nonFilteredFileExtension>
+                            <nonFilteredFileExtension>pem</nonFilteredFileExtension>
+                            <nonFilteredFileExtension>pfx</nonFilteredFileExtension>
+                            <nonFilteredFileExtension>jar</nonFilteredFileExtension>
+                        </nonFilteredFileExtensions>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-clean-plugin</artifactId>
+                    <version>${maven.clean.plugin.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>${maven.compiler.plugin.version}</version>
+                    <configuration>
+                        <compilerArgs>
+                            <arg>-parameters</arg>
+                        </compilerArgs>
+                        <source>${java.version}</source>
+                        <target>${java.version}</target>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-enforcer-plugin</artifactId>
+                    <version>${maven.enforcer.plugin.version}</version>
+                    <executions>
+                        <execution>
+                            <id>enforce-java</id>
+                            <goals>
+                                <goal>enforce</goal>
+                            </goals>
+                            <configuration>
+                                <rules>
+                                    <requireJavaVersion>
+                                        <version>[17,)</version>
+                                    </requireJavaVersion>
+                                </rules>
+                                <fail>true</fail>
+                            </configuration>
+                        </execution>
+                    </executions>
+                </plugin>
+                <plugin>
+                    <groupId>org.mule.tools.maven</groupId>
+                    <artifactId>mule-maven-plugin</artifactId>
+                    <version>${mule.maven.plugin.version}</version>
+                    <extensions>true</extensions>
+                    <configuration>
+                        <classifier>${application.type}</classifier>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>com.mulesoft.munit.tools</groupId>
+                    <artifactId>munit-maven-plugin</artifactId>
+                    <version>${munit.version}</version>
+                    <executions>
+                        <execution>
+                            <id>test</id>
+                            <phase>test</phase>
+                            <goals>
+                                <goal>test</goal>
+                                <goal>coverage-report</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                    <configuration>
+                        <coverage>
+                            <runCoverage>true</runCoverage>
+                            <failBuild>true</failBuild>
+                            <requiredApplicationCoverage>80</requiredApplicationCoverage>
+                            <requiredResourceCoverage>80</requiredResourceCoverage>
+                            <requiredFlowCoverage>80</requiredFlowCoverage>
+                            <ignoreFiles>
+                                <ignoreFile>global-config.xml</ignoreFile>
+                                <ignoreFile>common-error-handler.xml</ignoreFile>
+                            </ignoreFiles>
+                            <formats>
+                                <format>html</format>
+                                <format>console</format>
+                                <format>json</format>
+                                <format>pdf</format>
+                            </formats>
+                        </coverage>
+                        <skipMunitTests>${skipMunitTests}</skipMunitTests>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-release-plugin</artifactId>
+                    <version>${maven.release.plugin.version}</version>
+                    <configuration>
+                        <tagNameFormat>v@{project.version}</tagNameFormat>
+                    </configuration>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
+
+    <profiles>
+        <!--
+        PROFILE: deploy-to-exchange-v3 — always keep.
+        Publishes to Anypoint Exchange. Used by: (a) this POM's own pipeline, (b) CH2 pre-deploy step.
+        -->
+        <profile>
+            <id>deploy-to-exchange-v3</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.mule.tools.maven</groupId>
+                        <artifactId>exchange-mule-maven-plugin</artifactId>
+                        <version>${exchange.mule.maven.plugin.version}</version>
+                        <executions>
+                            <execution>
+                                <id>validate</id>
+                                <phase>validate</phase>
+                                <goals>
+                                    <goal>exchange-pre-deploy</goal>
+                                </goals>
+                            </execution>
+                            <execution>
+                                <id>deploy</id>
+                                <phase>deploy</phase>
+                                <goals>
+                                    <goal>exchange-deploy</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <inherited>false</inherited>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <!--
+        PROFILE: ch2 — CloudHub 2.0 (the only runtime target for this foundation).
+        Runtime: Mule 4.6.37 LTS, Java 17.
+        Space: Cloudhub-EU-West-1 (injected via deployment.space from settings.properties).
+        RULE: secrets (platform client_id/secret, vault key) go in <secureProperties>.
+        GUARD: ERR-013 — deployed app name capped at 42 characters.
+        -->
+        <profile>
+            <id>ch2</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <properties>
+                <app.runtime>4.6.37</app.runtime>
+                <api.analytics.uri>https://analytics-ingest.anypoint.mulesoft.com</api.analytics.uri>
+                <api.uri>https://anypoint.mulesoft.com</api.uri>
+                <deployment.timeoutMillis>1200000</deployment.timeoutMillis>
+                <deployment.lastMileSecurity>false</deployment.lastMileSecurity>
+                <deployment.disableAmLogForwarding>false</deployment.disableAmLogForwarding>
+                <ch.releaseChannel>LTS</ch.releaseChannel>
+                <attachMuleSources>true</attachMuleSources>
+                <connectedApp.grantType>client_credentials</connectedApp.grantType>
+
+                <deployment.generateDefaultPublicUrl>${generateDefaultPublicUrl}</deployment.generateDefaultPublicUrl>
+                <deployment.updateStrategy>${updateStrategy}</deployment.updateStrategy>
+                <deployment.forwardSslSession>${forwardSslSession}</deployment.forwardSslSession>
+                <deployment.clustered>${clustered}</deployment.clustered>
+                <deployment.persistentObjectStore>${persistentObjectStore}</deployment.persistentObjectStore>
+                <deployment.env>${chEnv}</deployment.env>
+                <deployment.suffix>-${mule.env}</deployment.suffix>
+                <deployment.name>${project.name}${deployment.suffix}</deployment.name>
+                <ch.space>${deployment.space}</ch.space>
+                <ch.replicas>${deployment.replica}</ch.replicas>
+                <ch.vCores>${deployment.core}</ch.vCores>
+                <connectedApp.clientId>${deployment.connAppClientId}</connectedApp.clientId>
+                <connectedApp.clientSecret>${deployment.connAppClientSecret}</connectedApp.clientSecret>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.mule.tools.maven</groupId>
+                        <artifactId>mule-maven-plugin</artifactId>
+                        <extensions>true</extensions>
+                        <configuration>
+                            <cloudhub2Deployment>
+                                <uri>${api.uri}</uri>
+                                <provider>MC</provider>
+                                <environment>${deployment.env}</environment>
+                                <target>${ch.space}</target>
+                                <muleVersion>${app.runtime}</muleVersion>
+                                <releaseChannel>${ch.releaseChannel}</releaseChannel>
+                                <replicas>${ch.replicas}</replicas>
+                                <vCores>${ch.vCores}</vCores>
+                                <applicationName>${deployment.name}</applicationName>
+                                <connectedAppClientId>${connectedApp.clientId}</connectedAppClientId>
+                                <connectedAppClientSecret>${connectedApp.clientSecret}</connectedAppClientSecret>
+                                <connectedAppGrantType>${connectedApp.grantType}</connectedAppGrantType>
+                                <deploymentTimeout>${deployment.timeoutMillis}</deploymentTimeout>
+                                <skipDeploymentVerification>false</skipDeploymentVerification>
+                                <javaVersion>${java.version}</javaVersion>
+                                <businessGroupId>${organizationId}</businessGroupId>
+                                <properties>
+                                    <mule.env>${mule.env}</mule.env>
+                                    <api.autodiscoveryID>${api.autodiscoveryID}</api.autodiscoveryID>
+                                    <anypoint.platform.config.analytics.agent.enabled>true</anypoint.platform.config.analytics.agent.enabled>
+                                    <anypoint.platform.visualizer.layer>${apiLayer}</anypoint.platform.visualizer.layer>
+                                    <anypoint.platform.visualizer.tags>${apiTags}</anypoint.platform.visualizer.tags>
+                                    <anypoint.platform.visualizer.displayName>${deployment.name}</anypoint.platform.visualizer.displayName>
+                                    <anypoint.platform.base_uri>${api.uri}</anypoint.platform.base_uri>
+                                    <anypoint.platform.analytics_base_uri>${api.analytics.uri}</anypoint.platform.analytics_base_uri>
+                                </properties>
+                                <secureProperties>
+                                    <anypoint.platform.client_id>${anypoint_platform_client_id}</anypoint.platform.client_id>
+                                    <anypoint.platform.client_secret>${anypoint_platform_client_secret}</anypoint.platform.client_secret>
+                                    <mule.vault.key>${mule.vault.key}</mule.vault.key>
+                                </secureProperties>
+                                <deploymentSettings>
+                                    <http>
+                                        <inbound>
+                                            <publicUrl>${deployment.publicUrl}</publicUrl>
+                                            <lastMileSecurity>${deployment.lastMileSecurity}</lastMileSecurity>
+                                            <forwardSslSession>${deployment.forwardSslSession}</forwardSslSession>
+                                        </inbound>
+                                    </http>
+                                    <generateDefaultPublicUrl>${deployment.generateDefaultPublicUrl}</generateDefaultPublicUrl>
+                                    <enforceDeployingReplicasAcrossNodes>true</enforceDeployingReplicasAcrossNodes>
+                                    <updateStrategy>${deployment.updateStrategy}</updateStrategy>
+                                    <clustered>${deployment.clustered}</clustered>
+                                    <disableAmLogForwarding>${deployment.disableAmLogForwarding}</disableAmLogForwarding>
+                                    <persistentObjectStore>${deployment.persistentObjectStore}</persistentObjectStore>
+                                </deploymentSettings>
+                                <integrations>
+                                    <services>
+                                        <objectStoreV2>
+                                            <enabled>true</enabled>
+                                        </objectStoreV2>
+                                    </services>
+                                </integrations>
+                            </cloudhub2Deployment>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>com.mulesoft.munit</groupId>
+                <artifactId>munit-tools</artifactId>
+                <version>${munit-tools}</version>
+                <classifier>mule-plugin</classifier>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.mulesoft.munit</groupId>
+                <artifactId>munit-runner</artifactId>
+                <version>${munit-runner}</version>
+                <classifier>mule-plugin</classifier>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.mule.weave</groupId>
+                <artifactId>assertions</artifactId>
+                <version>${assertions-version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.mulesoft.modules</groupId>
+                <artifactId>mule-secure-configuration-property-module</artifactId>
+                <version>${mule-secure-configuration-property-module}</version>
+                <classifier>mule-plugin</classifier>
+            </dependency>
+            <dependency>
+                <groupId>org.mule</groupId>
+                <artifactId>mule-encryption</artifactId>
+                <version>${mule-encryption}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.mule.modules</groupId>
+                <artifactId>mule-apikit-module</artifactId>
+                <version>${mule-apikit-module}</version>
+                <classifier>mule-plugin</classifier>
+            </dependency>
+            <dependency>
+                <groupId>org.mule.connectors</groupId>
+                <artifactId>mule-http-connector</artifactId>
+                <version>${mule-http-connector-version}</version>
+                <classifier>mule-plugin</classifier>
+            </dependency>
+            <dependency>
+                <groupId>org.mule.connectors</groupId>
+                <artifactId>mule-sockets-connector</artifactId>
+                <version>${mule-sockets-connector}</version>
+                <classifier>mule-plugin</classifier>
+            </dependency>
+            <!-- Additional connectors approved 2026-11-17 -->
+            <dependency>
+                <groupId>com.mulesoft.connectors</groupId>
+                <artifactId>mule-salesforce-connector</artifactId>
+                <version>${mule-salesforce-connector-version}</version>
+                <classifier>mule-plugin</classifier>
+            </dependency>
+            <dependency>
+                <groupId>org.mule.connectors</groupId>
+                <artifactId>mule-db-connector</artifactId>
+                <version>${mule-db-connector-version}</version>
+                <classifier>mule-plugin</classifier>
+            </dependency>
+            <dependency>
+                <groupId>org.mule.connectors</groupId>
+                <artifactId>mule-jms-connector</artifactId>
+                <version>${mule-jms-connector-version}</version>
+                <classifier>mule-plugin</classifier>
+            </dependency>
+            <dependency>
+                <groupId>com.mulesoft.connectors</groupId>
+                <artifactId>mule-anypoint-mq-connector</artifactId>
+                <version>${mule-anypoint-mq-connector-version}</version>
+                <classifier>mule-plugin</classifier>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <repositories>
+        <repository>
+            <id>mulesoft-releases</id>
+            <name>MuleSoft Releases Repository</name>
+            <url>https://repository.mulesoft.org/releases/</url>
+            <layout>default</layout>
+        </repository>
+        <repository>
+            <id>mulesoft-ee-releases</id>
+            <name>MuleEE Releases Repository</name>
+            <url>https://repository.mulesoft.org/nexus-ee/content/repositories/releases-ee/</url>
+        </repository>
+        <repository>
+            <id>central</id>
+            <name>Central Repository</name>
+            <url>https://repo1.maven.org/maven2/</url>
+            <layout>default</layout>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
+        <repository>
+            <id>anypoint-exchange-v3</id>
+            <name>Anypoint Exchange V3</name>
+            <url>https://maven.anypoint.mulesoft.com/api/v3/maven</url>
+            <layout>default</layout>
+        </repository>
+        <!--
+        GitHub Packages: child projects resolve mtd-parent-pom from here.
+        Authentication: GITHUB_TOKEN (read:packages) in settings.xml server id=github.
+        -->
+        <repository>
+            <id>${github.repository.id}</id>
+            <name>GitHub Packages</name>
+            <url>https://maven.pkg.github.com/${github.repository.owner}/${github.repository.name}</url>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
+
+    <pluginRepositories>
+        <pluginRepository>
+            <id>mulesoft-releases</id>
+            <name>mulesoft release repository</name>
+            <layout>default</layout>
+            <url>https://repository.mulesoft.org/releases/</url>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </pluginRepository>
+        <pluginRepository>
+            <id>anypoint-exchange-v3</id>
+            <name>Anypoint Exchange V3</name>
+            <url>https://maven.anypoint.mulesoft.com/api/v3/maven</url>
+            <layout>default</layout>
+        </pluginRepository>
+        <pluginRepository>
+            <id>mulesoft-ee-releases</id>
+            <name>MuleSoft Releases Repository</name>
+            <url>https://repository.mulesoft.org/nexus-ee/content/repositories/releases-ee/</url>
+            <layout>default</layout>
+        </pluginRepository>
+    </pluginRepositories>
+
+    <!--
+    DISTRIBUTION MANAGEMENT: GitHub Packages.
+    Both release and snapshot go to the same URL (GitHub Packages has no separate snapshot feed).
+    The id `github` must match the <server><id>github</id> in settings.xml.
+    Authentication is GITHUB_TOKEN (write:packages) injected by the pipeline — never committed.
+    -->
+    <distributionManagement>
+        <repository>
+            <id>${github.repository.id}</id>
+            <name>GitHub Packages Releases</name>
+            <url>https://maven.pkg.github.com/${github.repository.owner}/${github.repository.name}</url>
+        </repository>
+        <snapshotRepository>
+            <id>${github.repository.id}</id>
+            <name>GitHub Packages Snapshots</name>
+            <url>https://maven.pkg.github.com/${github.repository.owner}/${github.repository.name}</url>
+        </snapshotRepository>
+    </distributionManagement>
+
+</project>
