@@ -497,17 +497,24 @@
     Both release and snapshot go to the same URL (GitHub Packages has no separate snapshot feed).
     The id `github` must match the <server><id>github</id> in settings.xml.
     Authentication is GITHUB_TOKEN (write:packages) injected by the pipeline — never committed.
+
+    RULE: the URL uses ${project.artifactId} so each inheriting child publishes to its OWN
+    GitHub Packages namespace (maven.pkg.github.com/<owner>/<its-own-artifactId>). This matters
+    because GITHUB_TOKEN is scoped to the running repo — it can only write packages inside
+    that repo's namespace. A hardcoded `mtd-parent-pom` here would cause every app to 403.
+    For the parent's own build, ${project.artifactId} resolves to `mtd-parent-pom`, which is
+    the correct target.
     -->
     <distributionManagement>
         <repository>
             <id>${github.repository.id}</id>
             <name>GitHub Packages Releases</name>
-            <url>https://maven.pkg.github.com/${github.repository.owner}/${github.repository.name}</url>
+            <url>https://maven.pkg.github.com/${github.repository.owner}/${project.artifactId}</url>
         </repository>
         <snapshotRepository>
             <id>${github.repository.id}</id>
             <name>GitHub Packages Snapshots</name>
-            <url>https://maven.pkg.github.com/${github.repository.owner}/${github.repository.name}</url>
+            <url>https://maven.pkg.github.com/${github.repository.owner}/${project.artifactId}</url>
         </snapshotRepository>
     </distributionManagement>
 
